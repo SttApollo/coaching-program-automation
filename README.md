@@ -136,7 +136,7 @@ If any check fails, execution stops with a descriptive error before any holds ar
 
 ### Duplicate submission guard
 
-Before scheduling, the workflow queries the Sheet for existing sessions matching the client email. If rows are found for the same client email and phase number, execution stops with an error directing the Journey Master to use the reschedule form. This prevents double-scheduling while allowing returning clients to be onboarded for a new phase.
+Before scheduling, the workflow queries the Sheet for existing sessions matching the client email **and phase number**. If rows are found for the same phase, execution stops with an error directing the Journey Master to use the reschedule form instead. Scoping to the phase means returning clients starting a new phase are not blocked.  
 
 ### Descending row deletion
 
