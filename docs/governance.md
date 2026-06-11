@@ -1,6 +1,6 @@
 # Governance, Security & Ethics
 
-System governance document for the StillPoint Session Scheduler. Documents how data is handled, how access is controlled, where AI is used and how it is overseen, and how the system is operated and maintained responsibly.
+Documents how data is handled, how access is controlled, where AI is used and how it is overseen, and how the system is operated and maintained responsibly.
 
 ---
 
@@ -8,7 +8,7 @@ System governance document for the StillPoint Session Scheduler. Documents how d
 
 **In scope:** This document covers the scheduling automation workflow, its integrations (n8n Cloud, Google Calendar, Google Sheets, Google Drive, Google Apps Script, Trello, Anthropic API), and the operational practices around it.
 
-**Out of scope:** Payment processing, health data, session content and coaching notes, and downstream email delivery. The workflow generates an email draft — the coordinator sends the actual email manually after the coach approves it.
+**Out of scope:** Payment processing, session content and coaching notes, and downstream email delivery. The workflow generates an email draft — the operator sends the actual email manually after the coach approves it.
 
 ---
 
@@ -39,7 +39,7 @@ No payment information, health data, session content, or coaching notes are coll
 
 ### Who collects it
 
-A coordinator submits the form on behalf of the client. Clients do not submit data directly — there is no client-facing form or portal.
+An operator submits the form on behalf of the client. Clients do not submit data directly — there is no client-facing form or portal.
 
 ### Data flow
 
@@ -53,7 +53,7 @@ Coordinator Form → n8n workflow
 ```
 
 > **Data Handling Note:** This system applies three governing principles to all data it handles:
-> - **Data minimization** — only the fields required for scheduling are collected. No fields exist for coaching notes, payment, health status, or any other purpose.
+> - **Data minimization** — only the fields required for scheduling are collected. No fields exist for coaching notes, payment, or any other purpose.
 > - **Purpose limitation** — collected data is used exclusively to produce a session schedule. It is not used for analytics, marketing, or any secondary purpose.
 > - **No third-party sharing** — data is shared only with the named vendors in this document, under the terms of each vendor's data processing agreement.
 
@@ -73,11 +73,11 @@ Access to all systems follows the principle of least privilege — each account 
 | Trello | n8n credential (API key) | Card comments + label updates on specified board only |
 | Anthropic API | n8n credential (API key) | Text generation only |
 
-**Coordinator access:** The coordinator submits the scheduling form but has no direct access to n8n, the Google Sheet, or the Trello API credentials.
+**Operator access:** The coordinator submits the scheduling form but has no direct access to n8n, the Google Sheet, or the Trello API credentials.
 
 **No Gmail or Contacts access:** Google OAuth credentials are intentionally scoped to exclude Gmail and Contacts. The system drafts the email but does not send it.
 
-**Offboarding:** On any team member departure, the following must be completed: rotate the Apps Script shared secret, rotate Google OAuth credentials in n8n, remove the departing member from the Trello board, and — if the developer is leaving — transfer n8n account ownership to the coach before access is removed.
+**Offboarding:** On any team member departure, the following must be completed: rotate the Apps Script shared secret, rotate Google OAuth credentials in n8n, remove the departing member from the Trello board.
 
 ---
 
@@ -97,14 +97,12 @@ Anthropic does not use API-submitted data to train its models by default. For en
 
 After generating the schedule and drafting the email, the workflow posts both to a Trello card labeled "Email Draft" and sets the card status to "Waiting for Coach Approval." No email is sent, no calendar hold is confirmed, and no client is notified until the coach manually reviews the output, makes any edits, and gives explicit approval.
 
-The coordinator sends the email only after receiving that approval.
+The operator sends the email only after receiving that approval.
 
 This gate is a deliberate architectural choice, not a limitation of the system. It ensures that:
-- A human reviews every AI-generated output before it reaches a client
+- A human reviews every output before it reaches a client
 - The coach retains full control over client communication
 - Any inaccuracies in the draft are caught before they cause confusion
-
-**Transparency:** The Trello comment always labels the AI-generated content "Email Draft" so the approver is never unaware that AI was involved in producing the text.
 
 ---
 
@@ -144,7 +142,7 @@ Workflow fails
     ↓
 Error card appears in System Errors lane (automatic)
     ↓
-Coordinator reviews the error card
+Developer reviews the error card
     ↓
 Is it a data entry issue? (wrong email format, bad URL, mismatched client name)
     → YES: Correct the form data and resubmit. No developer needed.
@@ -153,7 +151,7 @@ Is it a data entry issue? (wrong email format, bad URL, mismatched client name)
     ↓
 Does the error affect a client with an active or imminent session?
     → YES: Notify the coach immediately.
-           Coordinator handles client communication manually while fix is in progress.
+           The coordinator handles client communication manually while the fix is in progress.
     → NO: Normal resolution timeline applies.
 ```
 
@@ -221,17 +219,13 @@ A written data retention policy agreed with the coach is recommended before hand
 
 ## 10. Ethics & Responsible Automation
 
-This section documents the ethical design choices made in this system, framed against current industry practice.
+This section documents the ethical design choices made in this system.
 
 ### Human oversight by design
 
 No automated action reaches an end client. The system produces drafts and calendar holds — it does not send emails, confirm bookings, or initiate any client-facing action. A human (the coach) reviews every AI output and every generated schedule before the coordinator takes the next step.
 
 This design aligns with **NIST AI RMF 1.0 — Govern 1.1**: "Policies, processes, procedures, and practices across the organization related to the mapping, measuring, and managing of AI risks are in place, transparent, and implemented effectively" — and specifically with the framework's emphasis on human oversight as a primary control for AI-generated outputs.
-
-### AI transparency
-
-Every AI-generated output in this system is explicitly labeled. The Trello comment that contains the email draft is headed "Email Draft" — the approver is never in a position of not knowing that AI was involved in producing the text. This reflects the **EU AI Act's transparency obligations** (effective 2025) for AI systems that interact with humans.
 
 ### Data minimization
 
@@ -243,7 +237,7 @@ Data collected by this system is used exclusively to produce a session schedule 
 
 ### Automation boundaries
 
-The workflow ends at the Trello approval card. Sending the email is the coordinator's action, not the system's. This boundary is intentional: it is where responsibility transfers from the automation to a person. Removing that boundary — automating the email send — would eliminate the human review step and is not a direction this system takes.
+The workflow ends at the Trello approval card. Sending the email is the operator's action, not the system's. This boundary is intentional: it is where responsibility transfers from the automation to a person. Removing that boundary — automating the email send — would eliminate the human review step.
 
 These design choices collectively reflect **ISO/IEC 42001:2023** principles for responsible AI system design: human oversight, transparency, data minimization, and defined operational boundaries.
 
@@ -266,4 +260,4 @@ These design choices collectively reflect **ISO/IEC 42001:2023** principles for 
 
 ### Success signal
 
-The coordinator no longer needs to manually cross-reference four systems (Calendar, Sheet, Docs, Trello) to schedule a client. The primary measure of success is that the full scheduling process — from form submission to Trello approval card — completes without coordinator intervention.
+The operator no longer needs to manually cross-reference four systems (Calendar, Sheet, Docs, Trello) to schedule a client. The primary measure of success is that the full scheduling process — from form submission to Trello approval card — completes without coordinator intervention.
