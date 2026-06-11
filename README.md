@@ -116,60 +116,9 @@ Initial architecture used a single form with a Switch node to route new client v
 
 ---
 
-## Key Technical Challenges
+## Technical Notes
 
-### Timezone overlap without a timezone library
-
-n8n Cloud's Code node sandbox blocks `luxon`. All timezone math is implemented with native `Date` + `Intl.DateTimeFormat`. The slot finder converts candidate times to both Lisa's timezone (MT) and the client's timezone and checks each window independently — a slot is only valid if it fits inside 11am–3pm MT **and** 9am–5pm in the client's local time.
-
-### Sprint spacing rules with a 21-day constraint
-
-Each session must be at least 7 days after the previous one, but there's an additional constraint: the Embed session must be at least 21 days after the first session of the sprint (Activate or Crystallize+Activate). The algorithm tracks `firstSessionActual` per sprint and enforces the 21-day floor before searching for the Embed slot.
-
-### Reschedule cascade without row index corruption
-
-Deleting Sheet rows while iterating them shifts all subsequent row numbers. The fix: sort the rows to delete in **descending** order by row number before the delete loop runs, so deletions at higher indices don't affect the indices of rows still to be deleted.
-
-### Calendar lookup window
-
-The Google Calendar read uses `timeMax = now + 12 months`. This was initially set to 5 months, which would silently miss conflicts for clients in later sprints of a 9-sprint program (which runs ~8.5 months). The window was extended after calculating the worst-case schedule length.
-
-### Google Docs API — no OAuth in HTTP Request nodes
-
-n8n's HTTP Request node doesn't support Google OAuth credentials directly. The workaround: a standalone Google Apps Script deployed as a public web app handles all Doc placeholder replacement. n8n POSTs a `batchUpdate`-style payload + a shared secret; the Apps Script validates the secret and calls the Docs API server-side.
-
-### `alwaysOutputData` on the session check node
-
-The duplicate submission check reads the Sheet for existing rows before scheduling. For a new client this returns 0 rows — which in n8n stops execution at that node. Setting `alwaysOutputData: true` on the Sheets node ensures the flow continues even when no rows are found. The downstream Code node already handles an empty result correctly.
-
----
-
-## Error Handling & Resilience
-
-### Per-node error strategy
-
-Not all failures are equal. The `Delete calendar holds` node (reschedule path) is set to `continueOnFail` — if an event ID is stale or already deleted, the reschedule shouldn't abort. All Sheet append nodes use `retryOnFail` since Sheets API has occasional rate limits.
-
-### Dedicated error workflow
-
-A separate `VC — Error Handler` workflow is registered as the error handler for the main scheduling workflow. When any execution fails, it:
-
-1. Detects which path failed (new client vs reschedule) from the failing node name
-2. Formats a structured error card
-3. Creates a card in the **System Errors** lane on the project management board
-
-```
-Error Trigger → Format error card (Code) → Create Trello card
-```
-
-The path detection logic:
-```javascript
-const isReschedule = nodeName.includes('Reschedule')
-  || nodeName === 'Form1'
-  || nodeName === 'redirect to form1';
-```
-
-Error card content includes: which path failed, failing node name, error message, execution ID, execution mode (real submission vs test run), timestamp, and a direct link to the execution in n8n.
+  Timezone math without `luxon`, the 21-day sprint spacing constraint, descending row deletion, calendar window sizing, and the Apps Script workaround for the Docs API — see [docs/technical-notes.md](docs/technical-notes.md).
 
 ---
 
