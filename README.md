@@ -5,7 +5,7 @@ A fully automated session scheduling system built for a neuroscience-backed lead
 2. **Calendar holds** — tentative blocks created on the coach's Google Calendar for every session across all sprints
 3. **A Trello approval card** — the schedule doc link and a drafted client email posted to the project board, ready for the coach to review and approve
 
-The workflow reads a live calendar, calculates all session slots against timezone constraints and blackout dates, and handles cascading reschedules — all triggered by a single form submission with zero manual steps in between.
+The workflow reads a live calendar, calculates all session slots against busy blocks, timezone constraints and blackout dates, and handles cascading reschedules — all triggered by a single form submission with zero manual steps in between.
 
 ---
 
