@@ -35,8 +35,5 @@ They do not contain:
 - Client names, emails, or Drive folder URLs
 - Any data from real executions
 
-## Reporting a security concern
 
-If you find a security issue in the code or approach documented in this repository, please report it via email rather than opening a public issue.
 
-Contact: suthazinthin@gmail.com
