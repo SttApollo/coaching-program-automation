@@ -44,6 +44,56 @@ Form (reschedule) → Get existing Sheet rows → Filter from sprint N
 
 **Integrations:** n8n Cloud · Google Calendar · Google Sheets · Google Drive · Google Apps Script · Trello
 
+
+  ```mermaid
+  flowchart TD
+      subgraph NEW["New Client Path"]
+          direction TB
+          A([Form Trigger]) --> B[Respond & Redirect]
+          B --> C[Check Existing Sessions\nGoogle Sheets]
+          C --> D[Read Calendar Events\nGoogle Calendar]
+          D --> E[Schedule Builder\nJavaScript]
+          E --> F[Create Calendar Holds\nGoogle Calendar]
+          F --> G[Log Sessions to Sheet\nGoogle Sheets]
+          G --> H[Copy Doc Template\nGoogle Drive]
+          H --> I[Build Replacement Map\nJavaScript]
+          I --> J[Fill Doc Placeholders\nApps Script]
+          J --> K[Draft Approval Email\nJavaScript]
+          K --> L[Post to Trello\nTrello]
+          L --> M[Update Approval Label\nTrello]
+      end
+  
+      subgraph RESCHED["Reschedule Path"]
+          direction TB
+          N([Form Trigger]) --> O[Respond & Redirect]
+          O --> P[Get Client Sessions\nGoogle Sheets]
+          P --> Q[Filter From Sprint N\nJavaScript]
+          Q --> R[Delete Calendar Holds\nGoogle Calendar]
+          R --> S[Sort Rows Descending\nJavaScript]
+          S --> T[Delete Sheet Rows\nGoogle Sheets]
+          T --> U[Delete Old Doc\nGoogle Drive]
+          U --> V[Read Calendar Events\nGoogle Calendar]
+          V --> W[Schedule Builder\nJavaScript]
+          W --> X[Create Calendar Holds\nGoogle Calendar]
+          X --> Y[Log Sessions to Sheet\nGoogle Sheets]
+          Y --> Z[Copy Doc Template\nGoogle Drive]
+          Z --> AA[Build Replacement Map\nJavaScript]
+          AA --> AB[Fill Doc Placeholders\nApps Script]
+          AB --> AC[Draft Approval Email\nJavaScript]
+          AC --> AD[Post to Trello\nTrello]
+          AD --> AE[Update Approval Label\nTrello]
+      end
+  
+      subgraph ERR["Error Handler Workflow"]
+          direction LR
+          AF([Error Trigger]) --> AG[Detect Path & Format\nJavaScript]
+          AG --> AH[Create Error Card\nTrello]
+      end   
+
+      NEW -.->|on failure| ERR
+      RESCHED -.->|on failure| ERR 
+  ```
+
 ---
 
 ## Build Approach
@@ -71,24 +121,6 @@ Initial architecture used a single form with a Switch node to route new client v
 ### Timezone overlap without a timezone library
 
 n8n Cloud's Code node sandbox blocks `luxon`. All timezone math is implemented with native `Date` + `Intl.DateTimeFormat`. The slot finder converts candidate times to both Lisa's timezone (MT) and the client's timezone and checks each window independently — a slot is only valid if it fits inside 11am–3pm MT **and** 9am–5pm in the client's local time.
-
-```javascript
-function fromTZComponents(dateStr, hour, minute, tz) {
-  // Reconstruct a UTC instant from local components without luxon
-  // by iterating offsets until the local representation matches
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const approxUtc = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  for (let offset = -840; offset <= 840; offset++) {
-    const candidate = new Date(approxUtc.getTime() + offset * 60000);
-    const local = toTZ(candidate, tz);
-    if (local.year === year && local.month === month &&
-        local.day === day && local.hour === hour && local.minute === minute) {
-      return candidate;
-    }
-  }
-  return approxUtc;
-}
-```
 
 ### Sprint spacing rules with a 21-day constraint
 
