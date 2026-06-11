@@ -1,0 +1,70 @@
+{
+  "name": "Coaching Session Scheduler — Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const exec = $json.execution;\nconst workflow = $json.workflow;\n\n// Detect which path failed based on the failing node name.\n// Reschedule-path nodes are suffixed or named with 'Reschedule'/'Form1'.\nconst nodeName = exec.error?.node?.name ?? 'Unknown';\nconst isReschedule = nodeName.includes('Reschedule') || nodeName === 'Form1' || nodeName === 'redirect to form1';\nconst path = isReschedule ? 'Reschedule' : 'New Client';\n\nconst mode = exec.mode === 'trigger' ? 'trigger (real submission)'\n  : exec.mode === 'manual' ? 'manual (test run)'\n  : exec.mode;\n\nconst now = new Date();\nconst timeStr = now.toLocaleString('en-US', {\n  timeZone: 'YOUR_COACH_TIMEZONE',\n  month: 'short',\n  day: 'numeric',\n  year: 'numeric',\n  hour: 'numeric',\n  minute: '2-digit',\n  hour12: true\n}) + ' (coach timezone)';\n\nconst desc = [\n  'PATH',\n  'Which path: ' + path,\n  '',\n  'WHAT FAILED',\n  'Node: ' + nodeName,\n  'Error: ' + (exec.error?.message ?? 'Unknown error'),\n  '',\n  'EXECUTION',\n  'ID: ' + exec.id,\n  'Mode: ' + mode,\n  'Time: ' + timeStr,\n  'Link: ' + (exec.url ?? 'https://YOUR_N8N_INSTANCE/workflow/' + workflow.id + '/executions/' + exec.id)\n].join('\\n');\n\nconst cardName = '\\u26a0\\ufe0f ' + path + ' path failed';\n\nreturn [{ json: { cardName, desc } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Format error card"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "listId": "YOUR_TRELLO_LIST_ID",
+        "name": "={{ $json.cardName }}",
+        "desc": "={{ $json.desc }}"
+      },
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Create error card",
+      "credentials": {
+        "trelloApi": {
+          "id": "YOUR_TRELLO_CREDENTIAL_ID",
+          "name": "Trello account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format error card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format error card": {
+      "main": [
+        [
+          {
+            "node": "Create error card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
